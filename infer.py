@@ -59,7 +59,7 @@ def read_class_names():
     if not CLASS_NAMES_PATH.is_file():
         raise FileNotFoundError(f"Class names file not found: {CLASS_NAMES_PATH}")
 
-    class_names = CLASS_NAMES_PATH.read_text(encoding="utf-8").splitlines()
+    class_names = CLASS_NAMES_PATH.read_text(encoding="utf-8").split()
     if not class_names:
         raise ValueError(f"Class names file is empty: {CLASS_NAMES_PATH}")
     return class_names

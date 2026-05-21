@@ -1,12 +1,13 @@
 import csv
 import json
+import traceback
 from datetime import datetime
 from pathlib import Path
 
 import torch
 import torch.nn as nn
 from flask import Flask, jsonify, render_template, request
-from PIL import Image
+from PIL import Image, ImageOps
 from torchvision import models, transforms
 
 
@@ -24,7 +25,7 @@ def read_class_names():
     if not CLASS_NAMES_PATH.is_file():
         raise FileNotFoundError(f"Class names file not found: {CLASS_NAMES_PATH}")
 
-    class_names = CLASS_NAMES_PATH.read_text(encoding="utf-8").splitlines()
+    class_names = CLASS_NAMES_PATH.read_text(encoding="utf-8").split()
     if not class_names:
         raise ValueError(f"Class names file is empty: {CLASS_NAMES_PATH}")
     return class_names
@@ -106,22 +107,37 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/health")
+def health():
+    return jsonify(
+        {
+            "status": "ok",
+            "model_path_exists": MODEL_PATH.is_file(),
+            "class_names": class_names,
+            "class_count": len(class_names),
+        }
+    )
+
+
 @app.route("/predict", methods=["POST"])
 def predict():
-    # The frontend sends exactly one static image with FormData key "image".
-    if "image" not in request.files:
-        return jsonify({"error": "No image file was uploaded. Use FormData key 'image'."}), 400
-
-    uploaded_file = request.files["image"]
-    if uploaded_file.filename == "":
-        return jsonify({"error": "The uploaded image has no filename."}), 400
-
     try:
-        image = Image.open(uploaded_file.stream).convert("RGB")
-    except Exception as error:
-        return jsonify({"error": f"Could not read the uploaded image: {error}"}), 400
+        # The frontend sends exactly one static image with FormData key "image".
+        if "image" not in request.files:
+            return jsonify({"error": "No image file was uploaded. Use FormData key 'image'."}), 400
 
-    try:
+        uploaded_file = request.files["image"]
+        if uploaded_file.filename == "":
+            return jsonify({"error": "The uploaded image has no filename."}), 400
+
+        try:
+            image = Image.open(uploaded_file.stream)
+            image = ImageOps.exif_transpose(image)
+            image = image.convert("RGB")
+            image.thumbnail((1024, 1024))
+        except Exception as error:
+            return jsonify({"error": f"Could not read the uploaded image: {error}"}), 400
+
         image_tensor = image_transform(image).unsqueeze(0)
 
         # CPU-only inference. No CUDA or device switching is used here.
@@ -150,10 +166,16 @@ def predict():
             }
         )
     except Exception as error:
-        return jsonify({"error": f"Prediction failed: {error}"}), 500
+        traceback.print_exc()
+        return jsonify({"error": str(error), "error_type": type(error).__name__}), 500
+
+
+@app.errorhandler(Exception)
+def handle_exception(error):
+    traceback.print_exc()
+    return jsonify({"error": str(error), "error_type": type(error).__name__}), 500
 
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=True)
     
-

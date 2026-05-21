@@ -170,15 +170,24 @@ async function sendImageBlob(blob) {
       body: formData,
     });
 
-    const data = await response.json();
-    if (!response.ok) {
-      setStatus(data.error || "Prediction failed.");
-      return;
+    const rawText = await response.text();
+    console.log("Raw prediction response:", rawText);
+
+    let data = {};
+    try {
+      data = rawText ? JSON.parse(rawText) : {};
+    } catch (err) {
+      throw new Error("Server returned non-JSON response: " + rawText.slice(0, 300));
     }
 
+    if (!response.ok) {
+      throw new Error(data.error || data.message || rawText || "Prediction request failed");
+    }
+
+    console.log("Prediction response:", data);
     showResult(data);
   } catch (error) {
-    setStatus(`Network error: ${error.message}`);
+    setStatus(`Prediction error: ${error.message}`);
   }
 }
 
