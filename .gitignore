@@ -2,6 +2,7 @@
 __pycache__/
 *.pyc
 .DS_Store
-prediction_logs/
 data/
+eval_subgroups/
 outputs/
+prediction_logs/
