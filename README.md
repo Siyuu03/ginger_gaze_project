@@ -1,48 +1,62 @@
-# Real vs Simulated Image Classifier
+# Ginger Cat Gazing System
 
-This workspace trains a beginner-friendly binary image classifier using Python, PyTorch, torchvision, scikit-learn, and a pretrained ResNet18 model.
+Ginger Cat Gazing System is a local web artwork and image classifier built with Flask, PyTorch, torchvision, and a pretrained ResNet18 model.
 
-The task is binary classification:
+The current model predicts four classes:
 
 - `real`
-- `simulated`
+- `ai`
+- `cartoon`
+- `impostor`
 
-## Dataset Layout
+## What It Does
 
-The scripts expect this exact folder structure:
+The Flask web app lets you submit one static image for classification through:
+
+- image upload
+- video upload, where the browser captures one selected frame for analysis
+- camera recognition, where the browser opens the camera and captures one frame
+
+All inputs are converted to one still image before being sent to the backend. The backend uses the saved PyTorch model to return the predicted class, confidence, and class probabilities.
+
+## Model Files
+
+Trained model files are stored in:
+
+```text
+models/
+  best_model.pth
+  class_names.txt
+```
+
+`best_model.pth` contains the trained ResNet18 weights. `class_names.txt` stores the class order used by the model.
+
+## Dataset
+
+Dataset folders are not included in GitHub.
+
+For local training, the project expects this folder structure:
 
 ```text
 data/
   train/
     real/
-    simulated/
+    ai/
+    cartoon/
+    impostor/
   val/
     real/
-    simulated/
+    ai/
+    cartoon/
+    impostor/
   test/
     real/
-    simulated/
+    ai/
+    cartoon/
+    impostor/
 ```
 
-Confirmed local image counts:
-
-| Folder | Image count |
-| --- | ---: |
-| `data/train/real` | 35 |
-| `data/train/simulated` | 35 |
-| `data/val/real` | 7 |
-| `data/val/simulated` | 7 |
-| `data/test/real` | 8 |
-| `data/test/simulated` | 8 |
-
-## Setup
-
-Create and activate a virtual environment:
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-```
+## Run Locally
 
 Install dependencies:
 
@@ -50,45 +64,39 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-## Train
+Start the Flask app:
 
-Run:
+```bash
+python app.py
+```
+
+Then open:
+
+```text
+http://127.0.0.1:5000
+```
+
+## Train Locally
+
+To train or retrain the model using the local dataset:
 
 ```bash
 python train.py
 ```
 
-The training script:
+The training script uses a pretrained ResNet18, replaces the final layer for the detected classes in `data/train`, validates on `data/val`, tests on `data/test`, and saves:
 
-- uses pretrained ResNet18 from torchvision
-- replaces the final layer for two classes
-- trains on `data/train`
-- validates on `data/val`
-- tests on `data/test`
-- saves the best model to `models/best_model.pth`
-- saves class names to `models/class_names.txt`
-- saves a test confusion matrix to `outputs/confusion_matrix.png`
+- `models/best_model.pth`
+- `models/class_names.txt`
+- `outputs/confusion_matrix.png`
 
-The code uses CPU-safe defaults for local training on a Mac:
+## Render Deployment
 
-- image size: `224`
-- batch size: `4`
-- epochs: `3`
-- `num_workers`: `0`
-- random seed: `42`
+The Flask app can be deployed on Render as a web service.
 
-## Infer
+Typical Render settings:
 
-After training, classify a single image:
+- Build command: `pip install -r requirements.txt`
+- Start command: `python app.py`
 
-```bash
-python infer.py path/to/image.jpg
-```
-
-Example:
-
-```bash
-python infer.py data/test/real/example.jpg
-```
-
-The output shows the predicted class, confidence, and probabilities for both classes.
+Because the dataset is not included in GitHub, deployment only needs the app files, requirements, and saved model files in `models/`.
