@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ginger Cat Gazing System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <p class="system-kicker">ALGORITHMIC GAZE ACTIVE</p>
+        <h1>GINGER CAT GAZING SYSTEM</h1>
+      </header>
+
+      <section class="workspace">
+        <div class="viewer" id="viewer">
+          <div class="viewer-frame"></div>
+          <div class="scanlines"></div>
+          <div class="noise"></div>
+
+          <div class="hud-top-left">CAM#03</div>
+          <div class="hud-top-right"><span class="rec-dot"></span>REC</div>
+
+          <div class="media-layer" id="mediaLayer">
+            <div class="standby" id="standby">
+              <span>REMOTE FELINE SIGNAL DETECTED</span>
+              <strong>AWAITING STATIC IMAGE</strong>
+              <span>THE MACHINE IS LOOKING FOR ORANGE</span>
+            </div>
+          </div>
+
+          <div class="tracking-box tracking-blue">
+            <span class="crosshair"></span>
+          </div>
+          <div class="tracking-box tracking-green">
+            <span class="crosshair"></span>
+          </div>
+
+          <div class="inset" id="inset">
+            <span>MAGNIFIED MEMORY</span>
+            <div class="inset-media" id="insetMedia"></div>
+          </div>
+
+          <div class="labels">
+            <span>LOW-RES INTIMACY FEED</span>
+            <span>PATTERN MEMORY SCANNING</span>
+          </div>
+
+          <div class="result-panel" id="resultPanel">
+            <p id="predictionText">REAL / AI / DRAWN / IMPOSTOR</p>
+            <p id="matchText">--% MATCH</p>
+            <p>GINGER CAT</p>
+            <p id="dateText">DATE --</p>
+            <p id="timeText">TIME --</p>
+          </div>
+        </div>
+
+        <aside class="controls">
+          <button id="uploadButton" type="button">IMAGE / VIDEO UPLOAD</button>
+          <button id="cameraButton" type="button">CAMERA RECOGNITION</button>
+          <button id="captureButton" class="hidden" type="button">CAPTURE FRAME</button>
+          <button id="exitButton" type="button">EXIT THE GAZE</button>
+          <p id="statusText">SYSTEM IDLE</p>
+        </aside>
+      </section>
+    </main>
+
+    <input id="fileInput" type="file" accept="image/*,video/*" hidden>
+    <canvas id="captureCanvas" hidden></canvas>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+  </body>
+</html>

@@ -1,0 +1,536 @@
+:root {
+  --blue: #4825f4;
+  --green: #19f9e4;
+  --red: #ff2638;
+  --white: #f4f7ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  color: var(--white);
+  font-family: "Courier New", Courier, monospace;
+}
+
+button {
+  font: inherit;
+}
+
+.shell {
+  height: 100vh;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.topbar {
+  text-align: center;
+  padding-top: 10px;
+}
+
+.system-kicker {
+  margin: 0 0 8px;
+  color: var(--green);
+  font-size: 13px;
+  letter-spacing: 2px;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(28px, 4.4vw, 58px);
+  line-height: 0.95;
+  letter-spacing: 0;
+  white-space: nowrap;
+  /* Performance: static title glow keeps the luminous look without animation. */
+  text-shadow:
+    0 0 8px rgba(244, 247, 255, 0.9),
+    0 0 20px rgba(72, 37, 244, 0.9),
+    0 0 34px rgba(72, 37, 244, 0.5);
+}
+
+.workspace {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 28px;
+  align-items: stretch;
+  min-height: 0;
+}
+
+.viewer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  justify-self: start;
+  border: 1px solid rgba(244, 247, 255, 0.55);
+  background: #030303;
+  overflow: hidden;
+  /* Performance: smaller shadows reduce repaint cost on older Intel GPUs. */
+  box-shadow: inset 0 0 26px rgba(255, 255, 255, 0.06), 0 0 22px rgba(25, 249, 228, 0.12);
+  contain: paint;
+}
+
+.viewer-frame {
+  position: absolute;
+  inset: 18px;
+  border: 1px solid rgba(244, 247, 255, 0.7);
+  /* Performance: stepped animation keeps the breathing frame without 60fps work. */
+  animation: breathe 3.6s steps(12, end) infinite;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.media-layer,
+.media-layer img,
+.media-layer video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.media-layer img,
+.media-layer video {
+  object-fit: contain;
+  /* Performance: avoid live CSS filters on full-size image/video surfaces. */
+}
+
+.standby {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 18px;
+  color: rgba(244, 247, 255, 0.72);
+  text-align: center;
+}
+
+.standby strong {
+  font-size: clamp(16px, 2.5vw, 32px);
+  color: var(--white);
+}
+
+.scanlines,
+.noise {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 7;
+}
+
+.scanlines {
+  opacity: 0.55;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.07),
+      rgba(255, 255, 255, 0.07) 1px,
+      transparent 1px,
+      transparent 8px
+    ),
+    repeating-linear-gradient(
+      to right,
+      rgba(255, 255, 255, 0.045),
+      rgba(255, 255, 255, 0.045) 1px,
+      transparent 1px,
+      transparent 84px
+    );
+  /* Performance: opacity is cheaper than mix-blend-mode for this overlay. */
+}
+
+.noise {
+  /* Performance: lighter static noise keeps texture with less compositing cost. */
+  opacity: 0.08;
+  background-image:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.2) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.14) 1px, transparent 1px);
+  background-size: 31px 29px, 37px 41px;
+}
+
+.hud-top-left,
+.hud-top-right,
+.labels,
+.result-panel,
+.inset {
+  position: absolute;
+  z-index: 9;
+}
+
+.hud-top-left {
+  top: 32px;
+  left: 34px;
+  color: var(--green);
+}
+
+.hud-top-right {
+  top: 32px;
+  right: 34px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--red);
+}
+
+.rec-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 8px var(--red);
+  animation: recPulse 1.4s steps(2, end) infinite;
+}
+
+.tracking-box {
+  position: absolute;
+  z-index: 8;
+  width: 180px;
+  height: 120px;
+  border: 2px solid currentColor;
+  box-shadow: 0 0 10px currentColor;
+  will-change: transform;
+}
+
+.tracking-blue {
+  left: 12%;
+  top: 22%;
+  color: var(--green);
+  /* Performance: 14-step drift approximates 12-15fps while preserving motion. */
+  animation: driftBlue 7s steps(14, end) infinite alternate;
+}
+
+.tracking-green {
+  right: 22%;
+  top: 38%;
+  color: var(--blue);
+  animation: driftGreen 8s steps(14, end) infinite alternate;
+}
+
+.crosshair::before,
+.crosshair::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  background: var(--red);
+  transform: translate(-50%, -50%);
+}
+
+.crosshair::before {
+  width: 34px;
+  height: 1px;
+}
+
+.crosshair::after {
+  width: 1px;
+  height: 34px;
+}
+
+.inset {
+  left: 28px;
+  bottom: 28px;
+  width: 384px;
+  height: 250px;
+  border: 1px solid var(--blue);
+  background: rgba(0, 0, 0, 0.78);
+  overflow: hidden;
+  box-shadow: 0 0 16px rgba(72, 37, 244, 0.58), inset 0 0 22px rgba(244, 247, 255, 0.06);
+}
+
+.inset::before {
+  content: "";
+  position: absolute;
+  left: 100%;
+  top: 42px;
+  width: 112px;
+  border-top: 1px solid var(--blue);
+  transform: rotate(-18deg);
+  transform-origin: left;
+}
+
+.inset span {
+  position: absolute;
+  left: 8px;
+  top: 6px;
+  z-index: 2;
+  font-size: 10px;
+  color: var(--green);
+}
+
+.inset-media {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.08),
+      rgba(255, 255, 255, 0.08) 1px,
+      transparent 1px,
+      transparent 7px
+    ),
+    radial-gradient(circle at 50% 45%, rgba(72, 37, 244, 0.2), rgba(255, 255, 255, 0.035) 45%, transparent 72%);
+}
+
+.inset-media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.06), transparent 34%),
+    repeating-linear-gradient(
+      to right,
+      rgba(0, 0, 0, 0.18),
+      rgba(0, 0, 0, 0.18) 2px,
+      transparent 2px,
+      transparent 5px
+    );
+}
+
+.inset-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 42% 38%;
+  /* Performance: one small static filter is limited to this inset, not the main image/video. */
+  filter: blur(0.7px) saturate(0.85);
+  transform: scale(2.35);
+}
+
+.labels {
+  left: 34px;
+  right: 34px;
+  bottom: 294px;
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  color: rgba(244, 247, 255, 0.62);
+  font-size: 12px;
+}
+
+.result-panel {
+  right: 28px;
+  bottom: 28px;
+  width: 408px;
+  height: 250px;
+  padding: 16px;
+  border-left: 2px solid var(--green);
+  background: rgba(0, 0, 0, 0.68);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.result-panel p {
+  margin: 0 0 6px;
+  min-height: 18px;
+  color: var(--white);
+}
+
+.result-panel p:nth-child(1),
+.result-panel p:nth-child(2) {
+  color: var(--green);
+  font-size: clamp(24px, 2.9vw, 36px);
+  line-height: 1.18;
+  text-shadow: 0 0 12px rgba(25, 249, 228, 0.45);
+}
+
+.result-panel p:nth-child(1) {
+  margin-bottom: 12px;
+}
+
+.result-panel p:nth-child(2) {
+  margin-bottom: 16px;
+}
+
+.result-panel p:nth-child(n + 3) {
+  font-size: 15px;
+  color: rgba(244, 247, 255, 0.86);
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  align-self: start;
+}
+
+.controls button {
+  min-height: 66px;
+  border: 2px solid rgba(244, 247, 255, 0.55);
+  border-radius: 14px;
+  background: #050505;
+  color: var(--white);
+  cursor: pointer;
+  text-align: left;
+  padding: 0 22px;
+  font-size: 17px;
+  transition: border-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+#uploadButton {
+  order: 1;
+}
+
+#cameraButton {
+  order: 2;
+}
+
+#exitButton {
+  order: 4;
+}
+
+#captureButton {
+  order: 3;
+}
+
+.controls button:hover {
+  border-color: var(--green);
+  color: var(--green);
+  transform: translateX(-3px);
+}
+
+.controls button:last-of-type:hover {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+#statusText {
+  order: 5;
+  margin: 10px 0 0;
+  color: rgba(244, 247, 255, 0.66);
+  line-height: 1.4;
+}
+
+.hidden {
+  display: none;
+}
+
+@keyframes breathe {
+  0%, 100% {
+    opacity: 0.55;
+    box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.04);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.12);
+  }
+}
+
+@keyframes recPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes driftBlue {
+  from {
+    transform: translate(-16px, -18px);
+  }
+  to {
+    transform: translate(42px, 34px);
+  }
+}
+
+@keyframes driftGreen {
+  from {
+    transform: translate(-8px, 18px);
+  }
+  to {
+    transform: translate(-58px, 54px);
+  }
+}
+
+@media (max-width: 860px) {
+  body {
+    overflow-y: auto;
+  }
+
+  .shell {
+    height: auto;
+    min-height: 100vh;
+    padding: 14px;
+  }
+
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .viewer {
+    width: 100%;
+    height: 68vh;
+    min-height: 520px;
+  }
+
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .result-panel {
+    right: 24px;
+    bottom: 24px;
+    width: min(396px, calc(50% - 36px));
+    height: 164px;
+  }
+
+  .inset {
+    left: 24px;
+    bottom: 24px;
+    width: min(372px, calc(50% - 36px));
+    height: 164px;
+  }
+
+  .labels {
+    bottom: 212px;
+  }
+}
+
+@media (max-width: 640px) {
+  h1 {
+    white-space: normal;
+  }
+
+  .inset {
+    left: 20px;
+    bottom: 20px;
+    width: 44%;
+    height: 140px;
+  }
+
+  .result-panel {
+    right: 20px;
+    bottom: 20px;
+    width: 44%;
+    height: 140px;
+    padding: 14px;
+  }
+
+  .labels {
+    bottom: 174px;
+    flex-direction: column;
+  }
+
+  .result-panel p:nth-child(1),
+  .result-panel p:nth-child(2) {
+    font-size: clamp(20px, 5.4vw, 28px);
+  }
+}
